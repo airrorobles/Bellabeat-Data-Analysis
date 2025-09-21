@@ -1,5 +1,6 @@
-📊 Bellabeat Case Study: Smart Device Usage Analysis
-📌 Project Overview
+📊 Bellabeat Case Study: Smart Device Usage Analysis  
+
+📌 Project Overview  
 This project analyzes Fitbit smart device data to uncover trends in user activity, sleep, weight, and heart rate. The goal is to transform raw data into actionable insights that can inform Bellabeat’s product strategy and marketing approach.
 The analysis follows the Google Data Analytics case study framework:
 - Ask – Define the business problem
