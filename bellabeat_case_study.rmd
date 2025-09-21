@@ -1,0 +1,228 @@
+---
+title: "Bellabeat Data Analysis"
+author: "Engr. Airro King T. Robles"
+output: html_document
+date: "2025-09-21"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+  
+## Scenario  
+I am a junior data analyst working on the marketing analyst team at Bellabeat, a high-tech manufacturer of health-focused products for women. Bellabeat is a successful small company, but they have the potential to become a larger player in the global smart device market. Urška Sršen, cofounder and Chief Creative Officer of Bellabeat, believes that analyzing smart device fitness data could help unlock new growth opporunities for the company. I have been asked to focus on one of Bellabeat’s products and analyze smart device data to gain insight into how consumers are using their smart devices. The insights I discover will then help guide marketing strategy for the company. I will present the analysis to the Bellabeat executive team along with high-level recommendations for Bellabeat’s marketing strategy.
+
+## Business Tasks  
+Sršen asks to analyze smart device usage data in order to gain insight into how consumers use non-Bellabeat smart devices. She then wants to select one Bellabeat product to apply these insights to in the presentation. These questions will guide the analysis:  
+ 1. What are some trends in smart device usage?  
+ 2. How could these trends apply to Bellabeat customers?  
+ 3. How could these trends help influence Bellabeat marketing strategy?  
+   
+ A repo shall be produced with the following deliverables:  
+ 1. A clear summary of the business task  
+ 2. A description of all data sources used  
+ 3. Documentation of any cleaning or manipulation of data  
+ 4. A summary of analysis  
+ 5. Supporting visualizations and key findings  
+ 6. Top high-level content recommendations based on your analysis
+  
+## Data Set Used
+* FitBit Fitness Tracker Data (CC0: Public Domain, dataset made available through Mobius): This Kaggle data set contains personal fitness tracker from thirty Fitbit users. Thirty eligible Fitbit users consented to the submission of personal tracker data, including minute-level output for physical activity, heart rate, and sleep monitoring. It includes information about daily activity, steps, and heart rate that can be used to explore users’ habits.  
+
+#### Loading the Required Packages
+```{r Installing and Loading Packages}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(readr)
+```
+
+#### Importing the Data Set
+```{r}
+steps_minute_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/minuteStepsNarrow_merged.csv")
+weight_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/weightLogInfo_merged.csv")
+heartrate_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/heartrate_seconds_merged.csv")
+calories_hourly_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/hourlyCalories_merged.csv")
+intensities_hourly_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/hourlyIntensities_merged.csv")
+steps_hourly_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/hourlySteps_merged.csv")
+calories_minute_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/minuteCaloriesNarrow_merged.csv")
+intensities_minute_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/minuteIntensitiesNarrow_merged.csv")
+met_minute_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/minuteMETsNarrow_merged.csv")
+sleep_minute_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/minuteSleep_merged.csv")
+daily_activity_df <- read_csv("C:/Users/guest_123/Downloads/mturkfitbit_export_3.12.16-4.11.16/Fitabase Data 3.12.16-4.11.16/dailyActivity_merged.csv")
+```
+
+```{r}
+daily_activity_df$ActivityDate <- mdy(daily_activity_df$ActivityDate)
+head(daily_activity_df)
+```
+
+```{r}
+head(intensities_hourly_df)
+head(daily_activity_df)
+head(calories_hourly_df)
+```
+
+```{r}
+# Convert dates
+daily_activity_df$ActivityDate <- as.Date(daily_activity_df$ActivityDate,
+                                          format = "%m/%d/%Y")
+
+calories_hourly_df$ActivityHour <- as.POSIXct(
+  calories_hourly_df$ActivityHour,
+  format = "%m/%d/%Y %I:%M:%S %p"
+)
+
+steps_hourly_df$ActivityHour <- as.POSIXct(
+  steps_hourly_df$ActivityHour,
+  format = "%m/%d/%Y %I:%M:%S %p"
+)
+
+intensities_hourly_df$ActivityHour <- as.POSIXct(
+  intensities_hourly_df$ActivityHour,
+  format = "%m/%d/%Y %I:%M:%S %p"
+)
+
+heartrate_df$Time <- as.POSIXct(
+  heartrate_df$Time,
+  format = "%m/%d/%Y %I:%M:%S %p"
+)
+
+weight_df$Date <- as.POSIXct(
+  weight_df$Date,
+  format = "%m/%d/%Y %I:%M:%S %p"
+)
+
+
+# Aggregate minute sleep into daily totals
+sleep_daily <- sleep_minute_df %>%
+  mutate(Date = mdy_hms(date)) %>%
+  group_by(Id, Date = as_date(Date)) %>%
+  summarise(totalSleepMins = sum(value), .groups = "drop")
+
+# Aggregate steps hourly
+steps_hourly_df <- steps_hourly_df %>%
+  group_by(Id, ActivityHour) %>%
+  summarise(StepTotal = sum(StepTotal), .groups = "drop")
+
+# Aggregate calories hourly
+calories_hourly_df <- calories_hourly_df %>%
+  group_by(Id, ActivityHour) %>%
+  summarise(Calories = sum(Calories), .groups = "drop")
+
+# Aggregate intensities hourly
+intensities_hourly_df <- intensities_hourly_df %>%
+  group_by(Id, ActivityHour) %>%
+  summarise(TotalIntensity = sum(TotalIntensity),
+            AverageIntensity = mean(AverageIntensity), .groups = "drop")
+
+# Merge daily activity + sleep
+activity_sleep <- daily_activity_df %>%
+  left_join(sleep_daily, by = c("Id" = "Id", "ActivityDate" = "Date"))
+
+# Merge hourly steps + calories + intensities
+hourly_df <- steps_hourly_df %>%
+  left_join(calories_hourly_df, by = c("Id", "ActivityHour")) %>%
+  left_join(intensities_hourly_df, by = c("Id", "ActivityHour"))
+
+```
+
+
+## Data Visualizations
+
+```{r warning=FALSE}
+# Daily Trends: Steps vs Calories
+ggplot(daily_activity_df, aes(x = ActivityDate)) +
+  geom_line(aes(y = TotalSteps, color = "Steps")) +
+  geom_line(aes(y = Calories, color = "Calories")) +
+  labs(title = "Daily Steps vs Calories Burned",
+       x = "Date", y = "Count") +
+  scale_color_manual(values = c("Steps" = "blue", "Calories" = "red"))
+
+# Sleep vs Activity
+ggplot(activity_sleep, aes(x = totalSleepMins, y = Calories)) +
+  geom_point(alpha = 0.5, color = "purple") +
+  geom_smooth(method = "lm", se = FALSE, color = "black") +
+  labs(title = "Sleep Duration vs Calories Burned",
+       x = "Total Sleep Minutes", y = "Calories Burned")
+
+# Hourly Heatmap (Steps)
+hourly_df %>%
+  mutate(hour = hour(ActivityHour),
+         weekday = wday(ActivityHour, label = TRUE)) %>%
+  group_by(hour, weekday) %>%
+  summarise(avgSteps = mean(StepTotal), .groups = "drop") %>%
+  ggplot(aes(x = hour, y = weekday, fill = avgSteps)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient(low = "lightyellow", high = "darkgreen") +
+  labs(title = "Average Steps by Hour & Weekday",
+       x = "Hour of Day", y = "Day of Week")
+
+# Weight & Resting HR Over Time
+# Convert date in weight log
+
+ggplot(weight_df, aes(x = Date, y = WeightKg)) +
+  geom_line(color = "blue") +
+  labs(title = "Weight Progress Over Time",
+       x = "Date", y = "Weight (kg)")
+
+# Heart rate by Day
+hr_daily <- heartrate_df %>%
+  mutate(Date = as_date(Time)) %>%
+  group_by(Id, Date) %>%
+  summarise(restHR = mean(Value), .groups = "drop")
+
+ggplot(hr_daily, aes(x = Date, y = restHR)) +
+  geom_line(color = "red") +
+  labs(title = "Average Resting Heart Rate Over Time",
+       x = "Date", y = "Heart Rate (bpm)")
+
+
+```
+
+
+## Summary of Findings
+
+#### 1. Daily Steps vs Calories Burned
+* Clear positive relationship: more steps generally lead to higher calorie burn.
+* However, the effect plateaus after a certain threshold — beyond ~10,000 steps, calorie burn doesn’t increase as sharply.
+
+#### 2. Sleep Duration vs Calories Burned
+* Weak negative correlation: longer sleep duration is slightly associated with lower calories burned.
+* Suggests that highly active days may coincide with shorter sleep, or that sedentary users sleep longer but burn fewer calories.
+
+#### 3. Hourly Heatmap of Steps (by Day of Week)
+* Activity peaks in the morning and evening hours, with midday lulls.
+* Weekdays show more structured activity patterns, while weekends are more irregular.
+
+#### 4. Weight Progress Over Time
+* Weight fluctuates with noticeable peaks and troughs, not a steady decline.
+* Indicates that lifestyle changes are inconsistent, or that users struggle with long-term weight management.
+
+#### 5. Resting Heart Rate Over Time
+* Resting HR trends vary by user, but some maintain consistently elevated levels.
+* Could signal stress, lack of recovery, or insufficient cardiovascular fitness.
+
+## Connecting Insights to the Business Problem
+
+#### 1. Trends in Smart Device Usage
+* Users rely on wearables to track steps, calories, sleep, weight, and heart rate.
+* Data shows sedentary dominance with bursts of activity, inconsistent sleep, and variable weight management.
+* Wearables capture daily rhythms (morning/evening peaks) and long-term health indicators (resting HR, weight).
+
+#### 2. Application to Bellabeat Customers
+* Bellabeat’s target audience (primarily women interested in wellness) can benefit from:
+* Daily nudges to reduce sedentary time and encourage consistent activity.
+* Sleep–activity balance insights (e.g., “On days you walk more, you sleep less — try winding down earlier”).
+* Stress and recovery monitoring via resting HR trends.
+* Weight management support with personalized feedback on fluctuations.
+
+#### 3. Influence on Bellabeat Marketing Strategy
+* Highlight holistic wellness: not just steps, but the interplay of sleep, stress, and activity.
+* Promote personalization: “Bellabeat learns your rhythms — morning walker, evening exerciser, or weekend warrior.”
+* Gamify engagement: challenges for consistent sleep + activity balance, not just step counts.
+* Position as a lifestyle coach: emphasize stress reduction, recovery, and sustainable weight management rather than raw fitness metrics.
+
+## Conclusion
+The visualizations show that users are active in bursts, often sedentary, sleep inconsistently, and struggle with weight stability. For Bellabeat, this means an opportunity to market itself not just as a tracker, but as a wellness companion that helps women balance activity, rest, and stress for long-term health.
